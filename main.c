@@ -1,4 +1,5 @@
 //Şükrü Gümüştaş
+//Written in CLion with Cygwin64
 #include <stdio.h>
 #include <stdbool.h>
 #include <string.h>
@@ -10,17 +11,25 @@ typedef struct node {
     struct node *next;
 } NODE;
 
-bool search (NODE *head, char *word);
-char *getWord(FILE *file);
-NODE *findCommonWords (NODE **a, NODE **b);
-NODE *find2Angrams (NODE **a, NODE **b);
-void concat (char *destination, char *first, char *second);
-void insert (NODE **head, char *word);
-void printList (NODE *head);
-void sort (NODE **node);
-void swap (char **a, char **b);
+bool search(NODE *head, char *word);
 
-int main () {
+char *getWord(FILE *file);
+
+NODE *findCommonWords(NODE **a, NODE **b);
+
+NODE *find2Angrams(NODE **a, NODE **b);
+
+void concat(char *destination, char *first, char *second);
+
+void insert(NODE **head, char *word);
+
+void printList(NODE *head);
+
+void sort(NODE **node);
+
+void swap(char **a, char **b);
+
+int main() {
 
     //I created file pointer.
     FILE *file;
@@ -28,21 +37,37 @@ int main () {
     *	input and two of them are for results.*/
     NODE *firstFile = NULL, *secondFile = NULL, *commonWords, *twoAngrams;
     //This word pointer is for taking input word by word.
-    char *word;
+    char *word, *file1 = "file1.txt", *file2 = "file2.txt";
     double a = 0, b = 0;
     //Getting inputs.
-    file = fopen("file1.txt", "r");
-    while (word = getWord(file)) {
+    if (!(file = fopen(file1, "r"))) {
+        perror("Error: ");
+        printf("%s", file1);
+        return EXIT_FAILURE;
+    }
+    while ((word = getWord(file))) {
         insert(&firstFile, word);
         a++;
     }
-    fclose(file);
-    file = fopen("file2.txt", "r");
-    while (word=getWord(file)) {
+    if (fclose(file) == EOF) {
+        perror("Error: ");
+        printf("%s", file1);
+        return EXIT_FAILURE;
+    }
+    if (!(file = fopen(file2, "r"))) {
+        perror("Error: ");
+        printf("%s", file2);
+        return EXIT_FAILURE;
+    }
+    while ((word = getWord(file))) {
         insert(&secondFile, word);
         b++;
     }
-    fclose(file);
+    if (fclose(file) == EOF) {
+        perror("Error: ");
+        printf("%s", file2);
+        return EXIT_FAILURE;
+    }
 
     //Finding common words and returning new common word list with function.
     commonWords = findCommonWords(&firstFile, &secondFile);
@@ -54,6 +79,8 @@ int main () {
     printf("The 2-angrams are: \n\n");
     //Printing it.
     printList(twoAngrams);
+    free(file1);
+    free(file2);
     free(firstFile);
     free(secondFile);
     free(commonWords);
@@ -62,13 +89,12 @@ int main () {
 }
 
 //This is a simple bubble sort algorithm for sorting linked list.
-void sort (NODE **node) {
-    NODE *head = *node, *second;
-//	char *temp = (char *)malloc(strlen(head->word)+1);
-    while(head) {
+void sort(NODE **node) {
+    NODE *head = *node, *second = NULL;
+    while (head) {
         second = head->next;
-        while(second) {
-            if(strcasecmp(head->word, second->word)>0) {
+        while (second) {
+            if (strcasecmp(head->word, second->word) > 0) {
                 swap(&(head->word), &(second->word));
             }
             second = second->next;
@@ -79,7 +105,7 @@ void sort (NODE **node) {
     free(second);
 }
 
-void swap (char **a, char **b) {
+void swap(char **a, char **b) {
     char *temp = *a;
     *a = *b;
     *b = temp;
@@ -90,18 +116,19 @@ void swap (char **a, char **b) {
 *	for all words in both lists. If there ara more than one matches, we search our result
 *	list. If that match is already in the list, we don't insert. To checking equality
 *	of two words, we use strcmp() function.*/
-NODE *findCommonWords (NODE **a, NODE **b) {
-    NODE *temp1 = *a, *temp2, *result = NULL;
+NODE *findCommonWords(NODE **a, NODE **b) {
+    NODE *temp1 = *a, *temp2 = NULL, *result = NULL;
     int counter = 0;
-    while(temp1) {
+    while (temp1) {
         temp2 = *b;
-        while(temp2) {
-            if(!strcasecmp(temp1->word, temp2->word) && !search(result, temp1->word)) {
+        while (temp2) {
+            if (strcasecmp(temp1->word, temp2->word) != 0 || search(result, temp1->word)) {
+                temp2 = temp2->next;
+            } else {
                 insert(&result, temp1->word);
                 counter++;
                 break;
             }
-            temp2 = temp2->next;
         }
         temp1 = temp1->next;
     }
@@ -121,20 +148,21 @@ NODE *findCommonWords (NODE **a, NODE **b) {
 *	with space char with strcat(), then we concat temp with second word again. If this merged text is
 *	already in 2-angrams list, we don't have to insert that so we search if it is in that. If it is not
 *	we insert that text to our list. We are doing this until all two words are compared and inserted.*/
-NODE *find2Angrams (NODE **a, NODE **b) {
-    NODE *temp1 = *a, *temp2, *result = NULL;
+NODE *find2Angrams(NODE **a, NODE **b) {
+    NODE *temp1 = *a, *temp2 = NULL, *result = NULL;
     int counter = 0;
     char destination[1000];
-    while(temp1->next) {
+    while (temp1->next) {
         temp2 = *b;
-        while(temp2->next) {
-            if(!strcmp(temp1->word, temp2->word) && !strcmp(temp1->next->word, temp2->next->word)) {
+        while (temp2->next) {
+            if (!strcmp(temp1->word, temp2->word) && !strcmp(temp1->next->word, temp2->next->word)) {
                 concat(destination, temp1->word, temp1->next->word);
-                if (search(result, destination)) {
+                if (!search(result, destination)) {
+                    insert(&result, destination);
+                    counter++;
+                } else {
                     break;
                 }
-                insert(&result, destination);
-                counter++;
             }
             temp2 = temp2->next;
         }
@@ -148,15 +176,15 @@ NODE *find2Angrams (NODE **a, NODE **b) {
     return result;
 }
 
-void concat (char *destination, char *first, char *second) {
-    int i = 0, j = 0, length1 = strlen(first), length2 = strlen(second);
-    while (i<length1) {
-        destination[i]=first[i];
+void concat(char *destination, char *first, char *second) {
+    int i = 0, j = 0, length1 = (int) strlen(first), length2 = (int) strlen(second);
+    while (i < length1) {
+        destination[i] = first[i];
         i++;
     }
-    destination[i++]=' ';
-    while (j<length2) {
-        destination[i++]=second[j++];
+    destination[i++] = ' ';
+    while (j < length2) {
+        destination[i++] = second[j++];
     }
     destination[i] = '\0';
 }
@@ -166,23 +194,20 @@ void concat (char *destination, char *first, char *second) {
 *	our result lists (common words or 2angrams), then we don't have to
 *	insert that word again so we eliminate that word thus there will be
 *	no duplicate words.*/
-bool search (NODE *head, char *word) {
+bool search(NODE *head, char *word) {
     NODE *current = head;
-    while(current) {
-        if(strcasecmp(current->word, word)) {
-            current = current->next;
-            continue;
-        }
-        return true;
+    while (current) {
+        if (strcasecmp(current->word, word) == 0) return true;
+        current = current->next;
     }
     free(current);
     return false;
 }
 
 //We are printing the list to the screen.
-void printList (NODE *head) {
+void printList(NODE *head) {
     NODE *current = head;
-    while(current) {
+    while (current) {
         printf("%s\n", current->word);
         current = current->next;
     }
@@ -190,23 +215,22 @@ void printList (NODE *head) {
 }
 
 //In this function, we are inserting words to the end of the linked list.
-void insert (NODE **head, char *word) {
-    NODE *newNode = (NODE *)malloc(sizeof(NODE)), *last = *head;
+void insert(NODE **head, char *word) {
+    NODE *newNode = (NODE *) malloc(sizeof(NODE)), *last = *head;
     newNode->word = strdup(word);
     newNode->next = NULL;
-    if(!(*head)) {
+    if (*head != NULL) {
+        while (last->next) {
+            last = last->next;
+        }
+        last->next = newNode;
+    } else {
         *head = newNode;
-        return;
     }
-    while(last->next) {
-        last = last->next;
-    }
-    last->next = newNode;
-    return;
 }
 
 
-/*	In this fınction, we are taking our inputs word by word. To do so,
+/*	In this function, we are taking our inputs word by word. To do so,
 *	we are taking every single letter as character. Then if a character
 *	is not alphabetic, we ignore that character. At the end when we get a
 *	word, we are returning the duplicate of that word with strdup() function
@@ -214,13 +238,14 @@ void insert (NODE **head, char *word) {
 char *getWord(FILE *file) {
     char word[100];
     int ch, i = 0;
-    while(EOF != (ch = fgetc(file)) && !isalpha(ch));
-    if (ch == EOF) {
+    while (EOF != (ch = fgetc(file)) && !isalpha(ch));
+    if (ch != EOF) {
+        do {
+            word[i++] = tolower(ch);
+        } while (EOF != (ch = fgetc(file)) && isalpha(ch));
+        word[i] = '\0';
+        return strndup(word, strlen(word));
+    } else {
         return NULL;
     }
-    do {
-        word[i++] = tolower(ch);
-    } while(EOF != (ch = fgetc(file)) && isalpha(ch));
-    word[i]='\0';
-    return strdup(word);
 }
